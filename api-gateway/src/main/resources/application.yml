@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+      routes:
+        # Booking Service Routes
+        - id: booking-service-auth
+          uri: lb://booking-service
+          predicates:
+            - Path=/user/register, /user/auth
+          filters:
+            - name: TraceIdFilter
+
+        - id: booking-service-user-management
+          uri: lb://booking-service
+          predicates:
+            - Path=/user, /users
+          filters:
+            - name: TraceIdFilter
+            - name: JwtAuthenticationFilter
+
+        - id: booking-service-bookings
+          uri: lb://booking-service
+          predicates:
+            - Path=/booking/**, /bookings/**
+          filters:
+            - name: TraceIdFilter
+            - name: JwtAuthenticationFilter
+
+        # Hotel Service Routes
+        - id: hotel-service-hotels
+          uri: lb://hotel-service
+          predicates:
+            - Path=/api/hotels/**
+          filters:
+            - name: TraceIdFilter
+            - name: JwtAuthenticationFilter
+
+        - id: hotel-service-rooms
+          uri: lb://hotel-service
+          predicates:
+            - Path=/api/rooms/**
+          filters:
+            - name: TraceIdFilter
+            - name: JwtAuthenticationFilter
+
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.hotel.gateway: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{traceId}] [%thread] %-5level %logger{36} - %msg%n"
+
+service:
+  auth:
+    api-key: "my-secret-service-key-12345"
